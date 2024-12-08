@@ -4,6 +4,7 @@ import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 import streamlit as st
+from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
 
 # Memuat model DNN yang sudah dilatih
 model = load_model('dnn_model.h5')
@@ -23,38 +24,13 @@ hands = mp_hands.Hands(static_image_mode=False, min_detection_confidence=0.3)
 st.title("Hand Gesture Recognition")
 st.write("Use your webcam to make hand gestures. The model will recognize the gesture in real-time.")
 
-# Tombol Start dan Stop
-start_button = st.button("Start Video Stream")
-stop_button = st.button("Stop Video Stream")
+# Custom Video Transformer to process frames from webcam
+class VideoTransformer(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
 
-# Create a placeholder for the webcam video stream
-frame_placeholder = st.empty()
-
-# Flag untuk memastikan hanya satu kali release webcam
-is_streaming = False
-cap = None
-
-# Mulai Streaming Video Jika Tombol "Start" Ditekan
-if start_button and not is_streaming:
-    is_streaming = True
-    # Start video capture with OpenCV
-    cap = cv2.VideoCapture(0)
-
-    # Check if webcam is available
-    if not cap.isOpened():
-        st.error("Error: Cannot access webcam.")
-        cap.release()
-        exit()
-
-    # Loop untuk menangkap dan memproses video
-    while is_streaming:
-        ret, frame = cap.read()
-        if not ret:
-            st.error("Failed to capture image.")
-            break
-
-        H, W, _ = frame.shape
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        H, W, _ = img.shape
+        frame_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Process the frame with MediaPipe to detect hand landmarks
         results = hands.process(frame_rgb)
@@ -63,7 +39,7 @@ if start_button and not is_streaming:
             for hand_landmarks in results.multi_hand_landmarks:
                 # Draw hand landmarks
                 mp_drawing.draw_landmarks(
-                    frame,  # frame to draw landmarks on
+                    img,  # frame to draw landmarks on
                     hand_landmarks,  # model output landmarks
                     mp_hands.HAND_CONNECTIONS,  # hand connections
                     mp_drawing_styles.get_default_hand_landmarks_style(),
@@ -104,18 +80,10 @@ if start_button and not is_streaming:
                     x2 = int(max(x_) * W) + 10
                     y2 = int(max(y_) * H) + 10
 
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 4)
-                    cv2.putText(frame, predicted_character, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 0, 0), 3, cv2.LINE_AA)
+                    cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 0), 4)
+                    cv2.putText(img, predicted_character, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 0, 0), 3, cv2.LINE_AA)
 
-        frame_placeholder.image(frame, channels="BGR", use_container_width=True)
+        return img
 
-        # Check if Stop button was pressed and stop streaming
-        if stop_button:
-            is_streaming = False
-
-    # Clean up after the loop stops
-    if cap:
-        cap.release()
-    cv2.destroyAllWindows()
-    frame_placeholder.empty()
-
+# Start the webcam using streamlit-webrtc
+webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
