@@ -35,6 +35,7 @@ class VideoTransformer(VideoTransformerBase):
         # Process the frame with MediaPipe to detect hand landmarks
         results = hands.process(frame_rgb)
 
+        # Memastikan ada tangan yang terdeteksi sebelum diproses
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 # Draw hand landmarks
@@ -57,6 +58,10 @@ class VideoTransformer(VideoTransformerBase):
 
                     x_.append(x)
                     y_.append(y)
+
+                # Cek apakah list landmark kosong
+                if len(x_) == 0 or len(y_) == 0:
+                    continue
 
                 # Normalize the landmark data
                 for i in range(len(hand_landmarks.landmark)):
