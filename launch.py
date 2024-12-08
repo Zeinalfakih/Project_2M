@@ -4,7 +4,7 @@ import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 import streamlit as st
-from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration, VideoTransformerBase
 
 # Memuat model DNN yang sudah dilatih
 model = load_model('dnn_model.h5')
@@ -90,5 +90,11 @@ class VideoTransformer(VideoTransformerBase):
 
         return img
 
+# Konfigurasi RTC untuk WebRTC stream
+rtc_configuration = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+
 # Start the webcam using streamlit-webrtc
-webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
+webrtc_streamer(key="hand-gesture-recognition", 
+                mode=WebRtcMode.SENDRECV, 
+                rtc_configuration=rtc_configuration, 
+                video_transformer_factory=VideoTransformer)
