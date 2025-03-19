@@ -79,3 +79,4 @@ else:
     with open('data.pickle', 'wb') as f:
         pickle.dump({'data': data, 'labels': labels}, f)
     print("Data and labels have been saved successfully.")
+    print("pppp")
